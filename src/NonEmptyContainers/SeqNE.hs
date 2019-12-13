@@ -197,7 +197,8 @@ monoTraversableTests =
 --------------------
 
 instance Show α ⇒ Show (SeqNE α) where
-  show (x :⫷ xs) = "NonEmptyContainers.IsNonEmpty.fromNonEmpty (" ⊕ show x ⊕ " :| " ⊕ show (toList xs) ⊕ ")"
+  show (x :⫷ xs) = "NonEmptyContainers.IsNonEmpty.fromNonEmpty (" ⊕ show x
+                 ⊕ " :| " ⊕ show (toList xs) ⊕ ")"
   show _          = error "failed to uncons SeqNE"
 
 --------------------
@@ -227,11 +228,13 @@ instance SemiSequence (SeqNE α) where
 ----------------------------------------
 
 instance FromNonEmpty (SeqNE α) where
+  fromNonEmpty ∷ NonEmpty.NonEmpty α → SeqNE α
   fromNonEmpty = SeqNE ∘ Data.NonNull.fromNonEmpty
 
 ----------------------------------------
 
 instance ToNonEmpty (SeqNE α) where
+  toNonEmpty ∷ SeqNE α → NonEmpty.NonEmpty α
   toNonEmpty = NonEmpty.fromList ∘ toList ∘ toNullable ∘ unSeqNE
 
 ----------------------------------------
@@ -254,6 +257,23 @@ instance ToSeq SeqNE where
   toSeq = toNullable ∘ unSeqNE
 instance ToSeq [] where
   toSeq = Seq.fromList
+instance ToSeq NonEmpty.NonEmpty where
+  toSeq = Seq.fromList ∘ toList
+
+{- This does not work:
+
+   Expected kind ‘* -> *’, but ‘NonNull []’ has kind ‘*’
+
+   Expecting one more argument to ‘[]’
+   Expected a type, but ‘[]’ has kind ‘* -> *’
+
+   see https://stackoverflow.com/questions/59319013/haskell-instance-wrapping
+ -}
+
+{-
+instance ToSeq (NonNull []) where
+  toSeq = Seq.fromList ∘ toNullable
+-}
 
 ------------------------------------------------------------
 
