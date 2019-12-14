@@ -7,8 +7,8 @@
 {-# LANGUAGE ViewPatterns      #-}
 
 module NonEmptyContainers.SeqConversions
-  ( AsMonoSeq( seq' ), FromMonoSeq( fromList, fromSeq ), IsMonoSeq( seq )
-  , ToMonoSeq( toSeq ), stripPrefix, tests )
+  ( AsSeq( seq' ), FromSeq( fromList, fromSeq ), IsSeq( seq )
+  , ToSeq( toSeq ), stripPrefix, tests )
 where
 
 -- base --------------------------------
@@ -74,81 +74,81 @@ import NonEmptyContainers.SeqNE  ( SeqNE, (⪬) )
 --------------------------------------------------------------------------------
 
 ----------------------------------------
---            FromMonoSeq             --
+--              FromSeq               --
 ----------------------------------------
 
 {- | α that may be constructed from a (empty?) Sequence of `Element α` -}
-class FromMonoSeq α where
+class FromSeq α where
   fromSeq ∷ Seq (Element α) → α
   fromList ∷ [Element α] → α
   fromList = fromSeq ∘ Seq.fromList
 
-instance FromMonoSeq (Seq α) where
+instance FromSeq (Seq α) where
   fromSeq = id
   fromList ∷ [α] → Seq α
   fromList = Seq.fromList
 
-instance FromMonoSeq [α] where
+instance FromSeq [α] where
   fromSeq ∷ Seq α → [α]
   fromSeq = Data.Foldable.toList
   fromList = id
 
 ----------------------------------------
---             ToMonoSeq              --
+--             ToSeq              --
 ----------------------------------------
 
 {- | α that may be converted to a (empty?) Sequence of `Element α` -}
-class ToMonoSeq α where
+class ToSeq α where
   toSeq ∷ α → Seq (Element α)
 
-instance {- α ~ Element (Seq α) ⇒ -} ToMonoSeq (Seq α) where
+instance {- α ~ Element (Seq α) ⇒ -} ToSeq (Seq α) where
   toSeq = id
 
-instance {- α ~ Element (SeqNE α) ⇒ -} ToMonoSeq (SeqNE α) where
+instance {- α ~ Element (SeqNE α) ⇒ -} ToSeq (SeqNE α) where
   toSeq = SeqNE.toSeq
 
-instance ToMonoSeq [α] where
+instance ToSeq [α] where
   toSeq = Seq.fromList
 
-instance ToMonoSeq (NonEmpty α) where
+instance ToSeq (NonEmpty α) where
   toSeq = toSeq ∘ toList
 
-instance ToMonoSeq (NonNull [α]) where
+instance ToSeq (NonNull [α]) where
   toSeq = toSeq ∘ toNullable
 
 ----------------------------------------
---             IsMonoSeq              --
+--               IsSeq                --
 ----------------------------------------
 
 {- | α that are isomorphic to a (empty?) Sequence of `Element α` -}
-class IsMonoSeq α where
+class IsSeq α where
   seq ∷ Iso' α (Seq (Element α))
 
-instance IsMonoSeq (Seq α) where
+instance IsSeq (Seq α) where
   seq = id
 
-instance IsMonoSeq [α] where
+instance IsSeq [α] where
   seq = iso toSeq fromSeq
 
 ----------------------------------------
---             AsMonoSeq              --
+--               AsSeq                --
 ----------------------------------------
 
 {- | α that may be representable by a Sequence of `Element α`; i.e., a
      `Seq (Element α)` is always convertable to an α, and an α /may be/
-     convertable to a `Seq (Element α)`.  So there must be a `FromMonoSeq`
+     convertable to a `Seq (Element α)`.  So there must be a `FromSeq`
      instance.
  -}
-class FromMonoSeq α ⇒ AsMonoSeq α where
+class FromSeq α ⇒ AsSeq α where
   toSeqMay ∷ α → Maybe (Seq (Element α))
   seq' ∷ Prism' α (Seq (Element α))
   seq' = prism' fromSeq toSeqMay
 
-instance {- α ~ Element (Seq α) ⇒ -} AsMonoSeq (Seq α) where
+instance {- α ~ Element (Seq α) ⇒ -} AsSeq (Seq α) where
 --  seq' = id -- prism' id Just
   toSeqMay = Just
 
-instance AsMonoSeq [α] where
+instance AsSeq [α] where
   seq' = -- prism' (Seq α → [α]) ([α] → Maybe (Seq α))
          prism' fromSeq (Just ∘ toSeq)
   toSeqMay = Just ∘ toSeq
