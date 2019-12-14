@@ -1,3 +1,8 @@
+1.1.0.0 2019-12-14
+==================
+- change {To,From,As,Is}MonoSeq{,NonEmpty} to drop the 'Mono' (since there's 
+  nothing 'Mono' about them)
+
 1.0.1.0 2019-12-13
 ==================
 - add instances for:

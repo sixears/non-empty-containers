@@ -6,8 +6,8 @@
 {-# LANGUAGE UnicodeSyntax     #-}
 
 module NonEmptyContainers.SeqNEConversions
-  ( AsMonoSeqNonEmpty( seqNE' ), FromMonoSeqNonEmpty( fromSeqNE )
-  , IsMonoSeqNonEmpty( seqNE ), ToMonoSeqNonEmpty( toSeqNE, toSeq_ ) )
+  ( AsSeqNonEmpty( seqNE' ), FromSeqNonEmpty( fromSeqNE )
+  , IsSeqNonEmpty( seqNE ), ToSeqNonEmpty( toSeqNE, toSeq_ ) )
 where
 
 -- base --------------------------------
@@ -51,61 +51,61 @@ import NonEmptyContainers.SeqNE       ( SeqNE( unSeqNE ), fromSeq )
 --------------------------------------------------------------------------------
 
 ----------------------------------------
---        FromMonoSeqNonEmpty         --
+--          FromSeqNonEmpty           --
 ----------------------------------------
 
 {- | α that may be constructed from a non-empty Sequence of `Element α` -}
-class FromMonoSeqNonEmpty α where
+class FromSeqNonEmpty α where
   fromSeqNE ∷ SeqNE (Element α) → α
 
-instance {- α ~ Element (SeqNE α) ⇒ -} FromMonoSeqNonEmpty (SeqNE α) where
+instance {- α ~ Element (SeqNE α) ⇒ -} FromSeqNonEmpty (SeqNE α) where
   fromSeqNE = id
 
-instance {- α ~ Element (SeqNE α) ⇒ -} FromMonoSeqNonEmpty (Seq α) where
+instance {- α ~ Element (SeqNE α) ⇒ -} FromSeqNonEmpty (Seq α) where
   fromSeqNE = SeqNE.toSeq
 
-instance FromMonoSeqNonEmpty (NonNull [α]) where
+instance FromSeqNonEmpty (NonNull [α]) where
   fromSeqNE ∷ SeqNE α → NonNull [α]
   fromSeqNE = uncurry ncons ∘ second Data.Foldable.toList ∘ splitFirst ∘ unSeqNE
 
-instance FromMonoSeqNonEmpty (NonEmpty α) where
+instance FromSeqNonEmpty (NonEmpty α) where
   fromSeqNE ∷ SeqNE α → NonEmpty α
   fromSeqNE = toNonEmpty
 
-instance FromMonoSeqNonEmpty [α] where
+instance FromSeqNonEmpty [α] where
   fromSeqNE ∷ SeqNE α → [α]
   fromSeqNE = toList ∘ toNonEmpty
 
 ----------------------------------------
---         ToMonoSeqNonEmpty          --
+--           ToSeqNonEmpty            --
 ----------------------------------------
 
 {- | α that may be converted to a non-empty Sequence of `Element α` -}
-class ToMonoSeqNonEmpty α where
+class ToSeqNonEmpty α where
   toSeqNE ∷ α → SeqNE (Element α)
-  {- | I'd really like to say "instance ToMonoSeqNonEmpty α ⇒ ToMonoSeq α",
+  {- | I'd really like to say "instance ToSeqNonEmpty α ⇒ ToSeq α",
        but this falls foul of the "constraint is no smaller than the instance
        head" issue.  So we provide this fn, in the expectation that instances of
-       `ToMonoSeqNonEmpty` will also define instances as of `ToMonoSeq` with
+       `ToSeqNonEmpty` will also define instances as of `ToSeq` with
        @toSeq = toSeq_@
    -}
   toSeq_ ∷ α → Seq (Element α)
   toSeq_ = SeqNE.toSeq ∘ toSeqNE
 
-instance {- α ~ Element (SeqNE α) ⇒ -} ToMonoSeqNonEmpty (SeqNE α) where
+instance {- α ~ Element (SeqNE α) ⇒ -} ToSeqNonEmpty (SeqNE α) where
   toSeqNE = id
   toSeq_  = SeqNE.toSeq
 
-instance {- α ~ Element (SeqNE α) ⇒ -} ToMonoSeqNonEmpty (NonNull (Seq α)) where
+instance {- α ~ Element (SeqNE α) ⇒ -} ToSeqNonEmpty (NonNull (Seq α)) where
   toSeqNE ∷ NonNull (Seq α) → SeqNE α
   toSeqNE = SeqNE.fromNonNullSeq
   toSeq_  = toNullable
 
-instance ToMonoSeqNonEmpty (NonEmpty α) where
+instance ToSeqNonEmpty (NonEmpty α) where
   toSeqNE ∷ NonEmpty α → SeqNE α
   toSeqNE = fromNonEmpty
 
-instance α ~ Element (SeqNE α) ⇒ ToMonoSeqNonEmpty (NonNull [α]) where
+instance {- α ~ Element (SeqNE α) ⇒ -} ToSeqNonEmpty (NonNull [α]) where
   toSeqNE ∷ NonNull [α] → SeqNE α
   toSeqNE = toSeqNE ∘ uncurry ncons ∘ second fromList ∘ splitFirst
   toSeq_  ∷ NonNull [α] → Seq α
@@ -113,56 +113,56 @@ instance α ~ Element (SeqNE α) ⇒ ToMonoSeqNonEmpty (NonNull [α]) where
 
 
 ----------------------------------------
---         IsMonoSeqNonEmpty          --
+--           IsSeqNonEmpty            --
 ----------------------------------------
 
 {- | α that are isomorphic to a non-empty Sequence of `Element α` -}
-class IsMonoSeqNonEmpty α where
+class IsSeqNonEmpty α where
   seqNE ∷ Iso' α (SeqNE (Element α))
 
-instance IsMonoSeqNonEmpty (SeqNE α) where
+instance IsSeqNonEmpty (SeqNE α) where
   seqNE = id -- iso toSeqNE fromSeqNE
 
-instance IsMonoSeqNonEmpty (NonNull [α]) where
+instance IsSeqNonEmpty (NonNull [α]) where
   seqNE = iso toSeqNE fromSeqNE
 
-instance IsMonoSeqNonEmpty (NonEmpty α) where
+instance IsSeqNonEmpty (NonEmpty α) where
   seqNE = iso toSeqNE fromSeqNE
 
 ----------------------------------------
---         AsMonoSeqNonEmpty          --
+--           AsSeqNonEmpty            --
 ----------------------------------------
 
 {- | α that may be representable by a non-empty Sequence of `Element α`; i.e., a
      `SeqNE (Element α)` is always convertable to an α, and an α /may be/
      convertable to a `SeqNE (Element α)`.  So there must be a
-     `FromMonoSeqNonEmpty` instance.
+     `FromSeqNonEmpty` instance.
  -}
-class FromMonoSeqNonEmpty α ⇒ AsMonoSeqNonEmpty α where
+class FromSeqNonEmpty α ⇒ AsSeqNonEmpty α where
   toSeqNEMay ∷ α → Maybe (SeqNE (Element α))
   seqNE' ∷ Prism' α (SeqNE (Element α))
   seqNE' = prism' fromSeqNE toSeqNEMay
 
-instance {- α ~ Element (SeqNE α) ⇒ -} AsMonoSeqNonEmpty (SeqNE α) where
+instance {- α ~ Element (SeqNE α) ⇒ -} AsSeqNonEmpty (SeqNE α) where
   seqNE' = prism' id Just
   toSeqNEMay = Just
 
-instance AsMonoSeqNonEmpty (Seq α) where
+instance AsSeqNonEmpty (Seq α) where
   seqNE' = -- prism' (SeqNE → Seq α) (Seq α → Maybe (SeqNE α))
            prism' SeqNE.toSeq fromSeq
   toSeqNEMay = fromSeq
 
-instance AsMonoSeqNonEmpty (NonNull [α]) where
+instance AsSeqNonEmpty (NonNull [α]) where
   seqNE' = -- prism' (SeqNE → NonNull [α]) (NonNull [α] → Maybe (SeqNE α))
            prism' fromSeqNE (Just ∘ toSeqNE)
   toSeqNEMay = Just ∘ toSeqNE
 
-instance AsMonoSeqNonEmpty (NonEmpty α) where
+instance AsSeqNonEmpty (NonEmpty α) where
   seqNE' = -- prism' (SeqNE → NonEmpty α) (NonEmpty α → Maybe (SeqNE α))
            prism' toNonEmpty (Just ∘ toSeqNE)
   toSeqNEMay = Just ∘ toSeqNE
 
-instance AsMonoSeqNonEmpty [α] where
+instance AsSeqNonEmpty [α] where
   seqNE' = -- prism' (SeqNE → [α]) ([α] → Maybe (SeqNE α))
            prism' Data.Foldable.toList (fmap fromNonEmpty ∘ nonEmpty)
   toSeqNEMay = fmap fromNonEmpty ∘ nonEmpty
