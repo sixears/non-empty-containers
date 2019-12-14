@@ -100,8 +100,8 @@ import TastyPlus  ( runTestsP, runTestsReplay, runTestTree )
 --                     local imports                      --
 ------------------------------------------------------------
 
-import NonEmptyContainers.IsNonEmpty  ( FromNonEmpty( fromNonEmpty )
-                                      , ToNonEmpty( toNonEmpty ) )
+import NonEmptyContainers.IsNonEmpty  ( FromMonoNonEmpty( fromNonEmpty )
+                                      , ToMonoNonEmpty( toNonEmpty ) )
 
 --------------------------------------------------------------------------------
 
@@ -227,13 +227,13 @@ instance SemiSequence (SeqNE α) where
 
 ----------------------------------------
 
-instance FromNonEmpty (SeqNE α) where
+instance FromMonoNonEmpty (SeqNE α) where
   fromNonEmpty ∷ NonEmpty.NonEmpty α → SeqNE α
   fromNonEmpty = SeqNE ∘ Data.NonNull.fromNonEmpty
 
 ----------------------------------------
 
-instance ToNonEmpty (SeqNE α) where
+instance ToMonoNonEmpty (SeqNE α) where
   toNonEmpty ∷ SeqNE α → NonEmpty.NonEmpty α
   toNonEmpty = NonEmpty.fromList ∘ toList ∘ toNullable ∘ unSeqNE
 

@@ -4,7 +4,8 @@
 {-# LANGUAGE UnicodeSyntax     #-}
 
 module NonEmptyContainers.IsNonEmpty
-  ( FromNonEmpty(..), IsNonEmpty(..), ToNonEmpty(..), defaultNonEmpty )
+  ( FromMonoNonEmpty(..), IsMonoNonEmpty(..), ToMonoNonEmpty(..)
+  , defaultNonEmpty )
 where
 
 -- base --------------------------------
@@ -26,31 +27,32 @@ import Data.MonoTraversable  ( Element )
 
 --------------------------------------------------------------------------------
 
-class FromNonEmpty α where
+class FromMonoNonEmpty α where
   fromNonEmpty ∷ NonEmpty (Element α) → α
 
-instance FromNonEmpty (NonEmpty α) where
+instance FromMonoNonEmpty (NonEmpty α) where
   fromNonEmpty = id
 
 ------------------------------------------------------------
 
-class ToNonEmpty α where
+class ToMonoNonEmpty α where
   toNonEmpty ∷ α → NonEmpty (Element α)
 
-instance ToNonEmpty (NonEmpty α) where
+instance ToMonoNonEmpty (NonEmpty α) where
   toNonEmpty = id
 
 ------------------------------------------------------------
 
-class IsNonEmpty α where
+class IsMonoNonEmpty α where
   nonEmpty ∷ Iso' α (NonEmpty (Element α))
 
 {- | pre-made "instance" of `IsNonEmpty` for instances of
     `FromNonEmpty` & `ToNonEmpty` -}
-defaultNonEmpty ∷ (FromNonEmpty α, ToNonEmpty α) ⇒ Iso' α (NonEmpty (Element α))
+defaultNonEmpty ∷ (FromMonoNonEmpty α, ToMonoNonEmpty α) ⇒
+                  Iso' α (NonEmpty (Element α))
 defaultNonEmpty = iso toNonEmpty fromNonEmpty
 
-instance IsNonEmpty (NonEmpty α) where
+instance IsMonoNonEmpty (NonEmpty α) where
   nonEmpty = defaultNonEmpty
 
 -- that's all, folks! ----------------------------------------------------------

@@ -1,3 +1,14 @@
+1.2.0.0 2019-12-14
+==================
+- Revert 1.1.0.0, indeed tidy up name usage to make use of 'Mono' in the class
+  name standard wherever 'Element α' is used.
+
+1.1.0.0 2019-12-14
+==================
+- Rename Mono classes to remove the Mono.  ABORTED; classes that require Element
+  from Data.MonoTraversable should be marked as Mono, because they are usable
+  with instances that have a single Element type (e.g., Text, Bytestring, FPath).
+
 1.0.1.0 2019-12-13
 ==================
 - add instances for:

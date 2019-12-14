@@ -7,7 +7,7 @@ name:                non-empty-containers
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.0.1.0
+version:             1.2.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            Containers that may not be empty, by construction
@@ -64,7 +64,7 @@ library
                      , mono-traversable, QuickCheck, tasty, tasty-hunit
                      , tasty-quickcheck
 
-                     , more-unicode >= 0.0.8.0, tasty-plus >= 1.0.1.0
+                     , more-unicode >= 0.0.9.0, tasty-plus >= 1.1.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
