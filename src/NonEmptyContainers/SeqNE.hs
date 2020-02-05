@@ -1,8 +1,10 @@
-{-# LANGUAGE InstanceSigs    #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE TypeFamilies    #-}
-{-# LANGUAGE UnicodeSyntax   #-}
-{-# LANGUAGE ViewPatterns    #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE InstanceSigs       #-}
+{-# LANGUAGE PatternSynonyms    #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE UnicodeSyntax      #-}
+{-# LANGUAGE ViewPatterns       #-}
 
 module NonEmptyContainers.SeqNE
   ( {-| A non-empty finite sequence of homogenous things -}
@@ -30,7 +32,9 @@ import Prelude  ( (+), (*), error )
 import qualified  Data.List.NonEmpty  as  NonEmpty
 
 import Control.Applicative  ( Applicative( (<*>), pure ) )
+import Control.Monad        ( return )
 import Data.Bool            ( Bool )
+import Data.Data            ( Data )
 import Data.Eq              ( Eq )
 import Data.Foldable        ( Foldable( foldr ), toList )
 import Data.Function        ( ($), id )
@@ -41,6 +45,7 @@ import Data.Ord             ( Ordering, (>) )
 import Data.Semigroup       ( Semigroup( (<>) ) )
 import Data.String          ( String )
 import Data.Traversable     ( Traversable, traverse )
+import Data.Typeable        ( Typeable )
 import Data.Word            ( Word64 )
 import System.Exit          ( ExitCode )
 import System.IO            ( IO )
@@ -60,7 +65,7 @@ import Data.Sequence  ( Seq, ViewR( EmptyR ), ViewL( EmptyL ), viewr )
 
 -- mono-traversable --------------------
 
-import qualified  Data.NonNull  
+import qualified  Data.NonNull
 
 import Data.MonoTraversable  ( Element, GrowingAppend, MonoFunctor, MonoFoldable
                              , MonoTraversable
@@ -96,6 +101,10 @@ import Test.Tasty.HUnit  ( assertFailure, testCase )
 
 import TastyPlus  ( runTestsP, runTestsReplay, runTestTree )
 
+-- template-haskell --------------------
+
+import Language.Haskell.TH.Syntax  ( Lift( lift ), Exp( AppE, VarE ) )
+
 ------------------------------------------------------------
 --                     local imports                      --
 ------------------------------------------------------------
@@ -109,7 +118,7 @@ import NonEmptyContainers.IsNonEmpty  ( FromMonoNonEmpty( fromNonEmpty )
      interfaces -}
 
 newtype SeqNE α = SeqNE { unSeqNE ∷ NonNull (Seq α) }
-  deriving Eq
+  deriving (Data,Eq)
 
 type instance Element (SeqNE α) = α
 
@@ -149,7 +158,7 @@ instance Applicative SeqNE where
 instance Foldable SeqNE where
   foldr ∷ (α → β → β) → β → SeqNE α → β
   foldr f i = foldr f i ∘ toSeq
-  
+
 --------------------
 
 instance Traversable SeqNE where
@@ -203,13 +212,20 @@ instance Show α ⇒ Show (SeqNE α) where
 
 --------------------
 
+instance (Data α,Typeable α,Lift α) ⇒ Lift (SeqNE α) where
+  lift (SeqNE ss) = do
+    xs ← lift ∘ toList $ toNullable ss
+    return $ AppE (VarE '__SeqNE) (AppE (VarE 'Seq.fromList) xs)
+
+--------------------
+
 instance SemiSequence (SeqNE α) where
 
   type instance Index (SeqNE α) = Word64
 
   cons ∷ α → SeqNE α → SeqNE α
   cons a s = SeqNE $ ncons a (toSeq s)
-  
+
   snoc ∷ SeqNE α → α → SeqNE α
   snoc s a = SeqNE ∘ impureNonNull $ (toSeq s) Seq.|> a
 
@@ -222,7 +238,7 @@ instance SemiSequence (SeqNE α) where
   find ∷ (α → Bool) → SeqNE α → Maybe α
   find p = find p ∘ toSeq
 
-  sortBy ∷ (α → α → Ordering) → SeqNE α → SeqNE α  
+  sortBy ∷ (α → α → Ordering) → SeqNE α → SeqNE α
   sortBy f = __UnsafeSmap (sortBy f)
 
 ----------------------------------------
@@ -406,7 +422,7 @@ instance Seqish Seq where
 
   (<||) ∷ ToSeq ψ ⇒ α → ψ α → Seq α
   a <|| s = a Seq.<| toSeq s
-  
+
   (<+) ∷ ToSeq ψ ⇒ ψ α → Seq α → Seq α
   xs <+ ys = toSeq xs ⊕ ys
   (+>) ∷ ToSeq ψ ⇒ Seq α → ψ α → Seq α
@@ -503,30 +519,46 @@ infixl 5 ⋗
 (⋗) ∷ ToSeq ψ ⇒ ψ α → α → SeqNE α
 (⋗) = (||>)
 
-
 infixl 5 :<||
 {- | (de)compose a `SeqNE α` from a `Seq α` and an `α` (leftwards) -}
 pattern (:<||) ∷ α -> Seq α -> SeqNE α
 pattern x :<|| xs <- (uncons -> (x,xs))
   where x :<|| xs = x <|| xs
+{-# COMPLETE (:<||) #-}
 
 infixl 5 :⫷
 {- | (de)compose a `SeqNE α` from a `Seq α` and an `α` (leftwards) -}
 pattern (:⫷) ∷ α -> Seq α -> SeqNE α
 pattern x :⫷ xs <- (uncons -> (x,xs))
   where x :⫷ xs = x <|| xs
+{-# COMPLETE (:⫷) #-}
 
 infixl 5 :||>
 {- | (de)compose a `SeqNE α` from a `Seq α` and an `α` (rightwards) -}
 pattern (:||>) ∷ Seq α -> α -> SeqNE α
 pattern xs :||> x <- (unsnoc -> (xs,x))
   where xs :||> x = xs ||> x
+{-# COMPLETE (:||>) #-}
 
 infixl 5 :⫸
 {- | (de)compose a `SeqNE α` from a `Seq α` and an `α` (rightwards) -}
 pattern (:⫸) ∷ Seq α -> α -> SeqNE α
 pattern xs :⫸ x <- (unsnoc -> (xs,x))
   where xs :⫸ x = xs ||> x
+{-# COMPLETE (:⫸) #-}
+
+compositionTests ∷ TestTree
+compositionTests =
+  let Just seq0 = fromList [2∷ℕ,4,6,8]
+      (xs,x) = case seq0 of
+                 ys :⫸ y → (ys,y)
+                 -- this line, when commented, will produce a 'Pattern match(es)
+                 -- are non-exhaustive' warning if the appropriate COMPLETE
+                 -- pragma is not in place
+--                 _       → (Seq.fromList [],0)
+   in testGroup "composition" [ testCase "xs" $ xs ≟ Seq.fromList [2,4,6]
+                              , testCase "x"  $ x  ≟ 8
+                              ]
 
 ----------------------------------------
 
@@ -534,7 +566,7 @@ pattern xs :⫸ x <- (unsnoc -> (xs,x))
 -- !!! DO NOT EXPORT !!!
 __SeqNE ∷ Seq α → SeqNE α
 __SeqNE = SeqNE ∘ impureNonNull
-  
+
 {- | apply a fn to a `Seq`; but if the `Seq` is empty, use a given sentinel
      value -}
 onEmpty ∷ β → (SeqNE α → β) → Seq α → β
@@ -667,7 +699,7 @@ seqishTests = testGroup "Seqish" [ seqishDecompTests ]
 tests ∷ TestTree
 tests = testGroup "SeqNE" [ semigroupTests, monoFunctorTests, monoFoldableTests
                           , monoTraversableTests, stripProperPrefixTests
-                          , catenationTests, seqishTests ]
+                          , catenationTests, seqishTests, compositionTests ]
 
 ----------------------------------------
 
