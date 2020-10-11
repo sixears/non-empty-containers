@@ -1,3 +1,7 @@
+1.4.0.0 2020-02-05
+==================
+- Add Lift instance to SeqNE
+
 1.2.0.0 2019-12-14
 ==================
 - Revert 1.1.0.0, indeed tidy up name usage to make use of 'Mono' in the class
