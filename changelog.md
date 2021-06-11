@@ -1,3 +1,7 @@
+1.4.1.0 2021-06-11
+==================
+- add in NonEmptyHashSet (from Fluffy)
+
 1.4.0.0 2020-02-05
 ==================
 - Add Lift instance to SeqNE
