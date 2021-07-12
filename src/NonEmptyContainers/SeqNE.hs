@@ -1,11 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE InstanceSigs       #-}
-{-# LANGUAGE PatternSynonyms    #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE UnicodeSyntax      #-}
-{-# LANGUAGE ViewPatterns       #-}
-
 module NonEmptyContainers.SeqNE
   ( {-| A non-empty finite sequence of homogenous things -}
     SeqNE( SeqNE, (:|>), (:<|), (:<||), (:||>), (:⫸), (:⫷), unSeqNE )
@@ -63,6 +55,10 @@ import qualified  Data.Sequence  as  Seq
 
 import Data.Sequence  ( Seq, ViewR( EmptyR ), ViewL( EmptyL ), viewr )
 
+-- deepseq -----------------------------
+
+import Control.DeepSeq  ( NFData( rnf ) )
+
 -- mono-traversable --------------------
 
 import qualified  Data.NonNull
@@ -82,7 +78,6 @@ import Data.MoreUnicode.Functor    ( (⊳), (⩺) )
 import Data.MoreUnicode.Monoid     ( ф )
 import Data.MoreUnicode.Natural    ( ℕ )
 import Data.MoreUnicode.Semigroup  ( (◇) )
-import Data.MoreUnicode.Tasty      ( (≟) )
 
 -- QuickCheck --------------------------
 
@@ -95,7 +90,7 @@ import Test.Tasty  ( TestTree, testGroup )
 
 -- tasty-hunit -------------------------
 
-import Test.Tasty.HUnit  ( assertFailure, testCase )
+import Test.Tasty.HUnit  ( (@=?), assertFailure, testCase )
 
 -- tasty-plus --------------------------
 
@@ -122,6 +117,9 @@ newtype SeqNE α = SeqNE { unSeqNE ∷ NonNull (Seq α) }
 
 type instance Element (SeqNE α) = α
 
+instance NFData α ⇒ NFData (SeqNE α) where
+  rnf (SeqNE s) = rnf (toNullable s)
+
 fromNonNullSeq ∷ NonNull (Seq α) → SeqNE α
 fromNonNullSeq = SeqNE
 
@@ -142,7 +140,7 @@ instance Semigroup (SeqNE α) where
 
 semigroupTests ∷ TestTree
 semigroupTests =
-  testGroup "Semigroup" [ testCase "1,2" $ (1∷ℕ) ⋖ [2] ≟ (pure 1) ◇ (pure 2)]
+  testGroup "Semigroup" [ testCase "1,2" $ (1∷ℕ) ⋖ [2] @=? (pure 1) ◇ (pure 2)]
 
 ----------------------------------------
 
@@ -176,9 +174,9 @@ instance MonoFunctor (SeqNE α) where
 monoFunctorTests ∷ TestTree
 monoFunctorTests =
   testGroup "MonoFunctor"
-            [ testCase "3"     $ 3 ⋖ []    ≟ omap (*3) ((1∷ℕ) ⋖ [])
-            , testCase "6,2"   $ 6 ⋖ [2]   ≟ omap (*2) (3 ⋖ [(1∷ℕ)])
-            , testCase "2,3,4" $ 2 ⋖ [3,4] ≟ omap (+1) ((1∷ℕ) ⋖ [2,3])
+            [ testCase "3"     $ 3 ⋖ []    @=? omap (*3) ((1∷ℕ) ⋖ [])
+            , testCase "6,2"   $ 6 ⋖ [2]   @=? omap (*2) (3 ⋖ [(1∷ℕ)])
+            , testCase "2,3,4" $ 2 ⋖ [3,4] @=? omap (+1) ((1∷ℕ) ⋖ [2,3])
             ]
 
 --------------------
@@ -188,8 +186,8 @@ instance MonoFoldable (SeqNE α) where
 monoFoldableTests ∷ TestTree
 monoFoldableTests =
   testGroup "MonoFoldable"
-            [ testCase "1" $ 1 ≟ ofoldr (+) 0 ((1∷ℕ) ⋖ [])
-            , testCase "6" $ 6 ≟ ofoldr1Ex (+) ((1∷ℕ) ⋖ [2,3])
+            [ testCase "1" $ 1 @=? ofoldr (+) 0 ((1∷ℕ) ⋖ [])
+            , testCase "6" $ 6 @=? ofoldr1Ex (+) ((1∷ℕ) ⋖ [2,3])
             ]
 
 --------------------
@@ -200,7 +198,7 @@ monoTraversableTests ∷ TestTree
 monoTraversableTests =
   testGroup "MonoTraversable"
             [ testCase "1" $ [2⋖[4],2⋖[2],1⋖[4],1⋖[2]]
-                           ≟ otraverse (\ x → [2*x,x])  ((1∷ℕ) ⋖ [2])
+                           @=? otraverse (\ x → [2*x,x])  ((1∷ℕ) ⋖ [2])
             ]
 
 --------------------
@@ -208,7 +206,7 @@ monoTraversableTests =
 instance Show α ⇒ Show (SeqNE α) where
   show (x :⫷ xs) = "NonEmptyContainers.IsNonEmpty.fromNonEmpty (" ⊕ show x
                  ⊕ " :| " ⊕ show (toList xs) ⊕ ")"
-  show _          = error "failed to uncons SeqNE"
+--  show _          = error "failed to uncons SeqNE"
 
 --------------------
 
@@ -488,9 +486,9 @@ pattern x :⪬ xs <- (maybeSeqL -> Just (x,xs))
 seqishDecompTests ∷ TestTree
 seqishDecompTests =
   testGroup "decomposition"
-            [ testCase "maybeSeqR Seq" $ Just (_1Seq,2) ≟ maybeSeqR _12Seq
+            [ testCase "maybeSeqR Seq" $ Just (_1Seq,2) @=? maybeSeqR _12Seq
             , testCase "(:|>)" $ case _123NE of
-                                   xs :|> x → do { x ≟ 3; xs ≟ _12Seq }
+                                   xs :|> x → do { x @=? 3; xs @=? _12Seq }
                                    _        → assertFailure "no match"
             ]
 
@@ -556,8 +554,8 @@ compositionTests =
                  -- are non-exhaustive' warning if the appropriate COMPLETE
                  -- pragma is not in place
 --                 _       → (Seq.fromList [],0)
-   in testGroup "composition" [ testCase "xs" $ xs ≟ Seq.fromList [2,4,6]
-                              , testCase "x"  $ x  ≟ 8
+   in testGroup "composition" [ testCase "xs" $ xs @=? Seq.fromList [2,4,6]
+                              , testCase "x"  $ x  @=? 8
                               ]
 
 ----------------------------------------
@@ -632,24 +630,24 @@ catenationTests =
    in testGroup "catenation"
           [ testGroup "Seq"
                 [ testGroup "<+"
-                      [ testCase "empty"   $ noSeq    ≟ [] ⪡ noSeq
-                      , testCase "ones"    $ ones     ≟ [] ⪡ ones
-                      , testCase "two one" $ 2 ⪪ ones ≟ [2] ⪡ ones
+                      [ testCase "empty"   $ noSeq    @=? [] ⪡ noSeq
+                      , testCase "ones"    $ ones     @=? [] ⪡ ones
+                      , testCase "two one" $ 2 ⪪ ones @=? [2] ⪡ ones
                       ]
                 , testGroup "+>"
-                      [ testCase "empty"    $ noSeq    ≟ noSeq ⪢ []
-                      , testCase "ones"     $ ones     ≟ ones  ⪢ []
-                      , testCase "one two" $ ones ⪫ 2 ≟ ones  ⪢ [2]
+                      [ testCase "empty"    $ noSeq    @=? noSeq ⪢ []
+                      , testCase "ones"     $ ones     @=? ones  ⪢ []
+                      , testCase "one two" $ ones ⪫ 2 @=? ones  ⪢ [2]
                       ]
                 ]
           , testGroup "SeqNE"
                 [ testGroup "<+"
-                      [ testCase "ones"    $ onesNE     ≟ [] ⪡ onesNE
-                      , testCase "two one" $ 2 ⪪ onesNE ≟ [2] ⪡ onesNE
+                      [ testCase "ones"    $ onesNE     @=? [] ⪡ onesNE
+                      , testCase "two one" $ 2 ⪪ onesNE @=? [2] ⪡ onesNE
                       ]
                 , testGroup "+>"
-                      [ testCase "ones"    $ onesNE     ≟ onesNE  ⪢ []
-                      , testCase "one two" $ onesNE ⪫ 2 ≟ onesNE  ⪢ [2]
+                      [ testCase "ones"    $ onesNE     @=? onesNE  ⪢ []
+                      , testCase "one two" $ onesNE ⪫ 2 @=? onesNE  ⪢ [2]
                       ]
                 ]
           ]
@@ -669,11 +667,11 @@ stripProperPrefix _ _ = Nothing
 stripProperPrefixTests ∷ TestTree
 stripProperPrefixTests =
   testGroup "stripProperPrefix"
-   [ testCase "null"   $ Just (1 ⋖ []) ≟ stripProperPrefix []    ((1 ∷ ℕ) ⋖ [])
-   , testCase "pfx"    $ Just (2 ⋖ []) ≟ stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [2])
-   , testCase "no pfx" $ Nothing       ≟ stripProperPrefix [2]   ((1 ∷ ℕ) ⋖ [])
-   , testCase "equal"  $ Nothing       ≟ stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [])
-   , testCase "longer" $ Nothing       ≟ stripProperPrefix [1,2] ((1 ∷ ℕ) ⋖ [])
+   [ testCase "null"   $ Just (1 ⋖ []) @=? stripProperPrefix []    ((1 ∷ ℕ) ⋖ [])
+   , testCase "pfx"    $ Just (2 ⋖ []) @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [2])
+   , testCase "no pfx" $ Nothing       @=? stripProperPrefix [2]   ((1 ∷ ℕ) ⋖ [])
+   , testCase "equal"  $ Nothing       @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [])
+   , testCase "longer" $ Nothing       @=? stripProperPrefix [1,2] ((1 ∷ ℕ) ⋖ [])
    ]
 
 --------------------------------------------------------------------------------

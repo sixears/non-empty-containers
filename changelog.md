@@ -1,3 +1,7 @@
+1.4.2.0 2021-07-12
+==================
+- add NFData instance of SeqNE
+
 1.4.1.0 2021-06-11
 ==================
 - add in NonEmptyHashSet (from Fluffy)

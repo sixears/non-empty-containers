@@ -1,11 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs      #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE UnicodeSyntax     #-}
-{-# LANGUAGE ViewPatterns      #-}
-
 module NonEmptyContainers.SeqConversions
   ( AsSeq( seq' ), FromSeq( fromList, fromSeq ), IsSeq( seq )
   , ToSeq( toSeq ), stripPrefix, tests )
@@ -49,7 +41,6 @@ import Data.NonNull          ( NonNull, toNullable )
 
 import Data.MoreUnicode.Monoid   ( ф )
 import Data.MoreUnicode.Natural  ( ℕ )
-import Data.MoreUnicode.Tasty    ( (≟) )
 
 -- tasty -------------------------------
 
@@ -57,7 +48,7 @@ import Test.Tasty  ( TestTree, testGroup )
 
 -- tasty-hunit -------------------------
 
-import Test.Tasty.HUnit  ( testCase )
+import Test.Tasty.HUnit  ( (@=?), testCase )
 
 -- tasty-plus --------------------------
 
@@ -173,11 +164,11 @@ stripPrefixTests =
       twos   = pure 2  ∷ Seq ℕ
       onetwo = 1 ⪬ [2] ∷ Seq ℕ
    in testGroup "stripPrefix"
-                [ testCase "null"   $ Just (pure 1) ≟ stripPrefix ф ones
-                , testCase "pfx"    $ Just (pure 2) ≟ stripPrefix ones onetwo
-                , testCase "no pfx" $ Nothing       ≟ stripPrefix twos ones
-                , testCase "equal"  $ Just ф        ≟ stripPrefix ones ones
-                , testCase "longer" $ Nothing       ≟ stripPrefix onetwo ones
+                [ testCase "null"   $ Just (pure 1) @=? stripPrefix ф ones
+                , testCase "pfx"    $ Just (pure 2) @=? stripPrefix ones onetwo
+                , testCase "no pfx" $ Nothing       @=? stripPrefix twos ones
+                , testCase "equal"  $ Just ф        @=? stripPrefix ones ones
+                , testCase "longer" $ Nothing       @=? stripPrefix onetwo ones
                 ]
 
 --------------------------------------------------------------------------------
