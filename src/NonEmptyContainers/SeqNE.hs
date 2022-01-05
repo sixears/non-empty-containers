@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module NonEmptyContainers.SeqNE
   ( {-| A non-empty finite sequence of homogenous things -}
     SeqNE( SeqNE, (:|>), (:<|), (:<||), (:||>), (:⫸), (:⫷), unSeqNE )
@@ -17,37 +19,18 @@ module NonEmptyContainers.SeqNE
   )
 where
 
-import Prelude  ( (+), (*), error )
+import Base1  hiding  ( fromList, head, init, last, tail )
+import Prelude  ( (*), error )
 
 -- base --------------------------------
 
 import qualified  Data.List.NonEmpty  as  NonEmpty
 
-import Control.Applicative  ( Applicative( (<*>), pure ) )
-import Control.Monad        ( return )
-import Data.Bool            ( Bool )
 import Data.Data            ( Data )
-import Data.Eq              ( Eq )
-import Data.Foldable        ( Foldable( foldr ), toList )
-import Data.Function        ( ($), id )
-import Data.Functor         ( Functor( fmap ) )
+import Data.Foldable        ( Foldable )
+import Data.Functor         ( Functor )
 import Data.List            ( filter )
-import Data.Maybe           ( Maybe( Just, Nothing ) )
-import Data.Ord             ( Ordering, (>) )
-import Data.Semigroup       ( Semigroup( (<>) ) )
-import Data.String          ( String )
-import Data.Traversable     ( Traversable, traverse )
-import Data.Typeable        ( Typeable )
-import Data.Word            ( Word64 )
-import System.Exit          ( ExitCode )
-import System.IO            ( IO )
-import Text.Show            ( Show( show ) )
-
--- base-unicode-symbols ----------------
-
-import Data.Eq.Unicode        ( (≡) )
-import Data.Function.Unicode  ( (∘) )
-import Data.Monoid.Unicode    ( (⊕) )
+import Data.Ord             ( Ordering )
 
 -- containers --------------------------
 
@@ -72,13 +55,6 @@ import Data.NonNull          ( NonNull, fromNullable
 import Data.Sequences        ( Index, SemiSequence( cons, find, intersperse
                                                   , reverse, snoc, sortBy ) )
 
--- more-unicode ------------------------
-
-import Data.MoreUnicode.Functor    ( (⊳), (⩺) )
-import Data.MoreUnicode.Monoid     ( ф )
-import Data.MoreUnicode.Natural    ( ℕ )
-import Data.MoreUnicode.Semigroup  ( (◇) )
-
 -- QuickCheck --------------------------
 
 import Test.QuickCheck.Arbitrary  ( Arbitrary( arbitrary, shrink ) )
@@ -98,7 +74,8 @@ import TastyPlus  ( runTestsP, runTestsReplay, runTestTree )
 
 -- template-haskell --------------------
 
-import Language.Haskell.TH.Syntax  ( Lift( lift ), Exp( AppE, VarE ) )
+import Language.Haskell.TH.Syntax  ( Lift( lift, liftTyped )
+                                   , Exp( AppE, VarE ), TExp( TExp ) )
 
 ------------------------------------------------------------
 --                     local imports                      --
@@ -123,7 +100,7 @@ instance NFData α ⇒ NFData (SeqNE α) where
 fromNonNullSeq ∷ NonNull (Seq α) → SeqNE α
 fromNonNullSeq = SeqNE
 
-fromSeq ∷ Seq α → Maybe (SeqNE α)
+fromSeq ∷ Seq α → 𝕄 (SeqNE α)
 fromSeq = SeqNE ⩺ fromNullable
 
 ----------------------------------------
@@ -206,7 +183,6 @@ monoTraversableTests =
 instance Show α ⇒ Show (SeqNE α) where
   show (x :⫷ xs) = "NonEmptyContainers.IsNonEmpty.fromNonEmpty (" ⊕ show x
                  ⊕ " :| " ⊕ show (toList xs) ⊕ ")"
---  show _          = error "failed to uncons SeqNE"
 
 --------------------
 
@@ -214,6 +190,7 @@ instance (Data α,Typeable α,Lift α) ⇒ Lift (SeqNE α) where
   lift (SeqNE ss) = do
     xs ← lift ∘ toList $ toNullable ss
     return $ AppE (VarE '__SeqNE) (AppE (VarE 'Seq.fromList) xs)
+  liftTyped s = TExp ⊳ lift s
 
 --------------------
 
@@ -233,7 +210,7 @@ instance SemiSequence (SeqNE α) where
   reverse ∷ SeqNE α → SeqNE α
   reverse = __UnsafeSmap reverse
 
-  find ∷ (α → Bool) → SeqNE α → Maybe α
+  find ∷ (α → 𝔹) → SeqNE α → 𝕄 α
   find p = find p ∘ toSeq
 
   sortBy ∷ (α → α → Ordering) → SeqNE α → SeqNE α
@@ -298,15 +275,15 @@ instance ToSeq (NonNull []) where
 -- moderately hard to debug.  So I've factored it out, such that if the
 -- `_maybeSeqR` fn were to be deleted, it would be caught at compile-time.
 
-_maybeSeqR ∷ Seq α → Maybe (Seq α, α)
+_maybeSeqR ∷ Seq α → 𝕄 (Seq α, α)
 _maybeSeqR ss = case Seq.viewr ss of
-                  EmptyR     → Nothing
-                  s Seq.:> a → Just (s,a)
+                  EmptyR     → 𝕹
+                  s Seq.:> a → 𝕵 (s,a)
 
-_maybeSeqL ∷ Seq α → Maybe (α, Seq α)
+_maybeSeqL ∷ Seq α → 𝕄 (α, Seq α)
 _maybeSeqL ss = case Seq.viewl ss of
-                   EmptyL     → Nothing
-                   a Seq.:< s → Just (a,s)
+                   EmptyL     → 𝕹
+                   a Seq.:< s → 𝕵 (a,s)
 
 
 -- would like to say "SemiSequence κ ⇒ Seqish κ" here, but I can't find the
@@ -347,10 +324,10 @@ class ToSeq κ ⇒ Seqish κ where
   (+>) ∷ ToSeq ψ ⇒ κ α → ψ α → κ α
 
   {- | decompose to the left -}
-  maybeSeqL ∷ κ α → Maybe (α, Seq α)
+  maybeSeqL ∷ κ α → 𝕄 (α, Seq α)
   maybeSeqL = _maybeSeqL ∘ toSeq
   {- | decompose to the right -}
-  maybeSeqR ∷ κ α → Maybe (Seq α, α)
+  maybeSeqR ∷ κ α → 𝕄 (Seq α, α)
   maybeSeqR = _maybeSeqR ∘ toSeq
 
 ----------------------------------------
@@ -458,27 +435,27 @@ instance Seqish SeqNE where
 infixl 5 :|>
 {- | pattern rightwards (de)composition of a `Seqish` κ -}
 pattern (:|>) ∷ Seqish κ ⇒ Seq α -> α -> κ α
-pattern xs :|> x <- (maybeSeqR -> Just (xs,x))
+pattern xs :|> x <- (maybeSeqR -> 𝕵 (xs,x))
         where xs :|> x = xs ⪭ x
 
 infixl 5 :⪭
 {- | pattern rightwards (de)composition of a `Seqish` κ
      (unicode alias for `(:|>)`) -}
 pattern (:⪭) ∷ Seqish κ ⇒ Seq α -> α -> κ α
-pattern xs :⪭ x <- (maybeSeqR -> Just (xs,x)) -- decomposition (pattern)
+pattern xs :⪭ x <- (maybeSeqR -> 𝕵 (xs,x)) -- decomposition (pattern)
         where xs :⪭ x = xs ⪭ x                -- composition (construction)
 
 infixr 5 :<|
 {- | pattern leftwards (de)composition of a `Seqish` κ -}
 pattern (:<|) ∷ Seqish κ ⇒ α -> Seq α -> κ α
-pattern x :<| xs <- (maybeSeqL -> Just (x,xs))
+pattern x :<| xs <- (maybeSeqL -> 𝕵 (x,xs))
         where xs :<| x = xs ⪬ x
 
 infixr 5 :⪬
 {- | pattern leftwards (de)composition of a `Seqish` κ
      (unicode alias for `(:<|)`) -}
 pattern (:⪬) ∷ Seqish κ ⇒ α -> Seq α -> κ α
-pattern x :⪬ xs <- (maybeSeqL -> Just (x,xs))
+pattern x :⪬ xs <- (maybeSeqL -> 𝕵 (x,xs))
         where xs :⪬ x = xs ⪬ x
 
 --------------------
@@ -486,7 +463,7 @@ pattern x :⪬ xs <- (maybeSeqL -> Just (x,xs))
 seqishDecompTests ∷ TestTree
 seqishDecompTests =
   testGroup "decomposition"
-            [ testCase "maybeSeqR Seq" $ Just (_1Seq,2) @=? maybeSeqR _12Seq
+            [ testCase "maybeSeqR Seq" $ 𝕵 (_1Seq,2) @=? maybeSeqR _12Seq
             , testCase "(:|>)" $ case _123NE of
                                    xs :|> x → do { x @=? 3; xs @=? _12Seq }
                                    _        → assertFailure "no match"
@@ -497,8 +474,8 @@ seqishDecompTests =
 {- | decompose a `SeqNE` leftwards -}
 uncons ∷ SeqNE α → (α, Seq α)
 uncons ss = case nuncons $ unSeqNE ss of
-              (a, Nothing) → (a, Seq.Empty)
-              (a, Just s)  → (a, toNullable s)
+              (a, 𝕹) → (a, Seq.Empty)
+              (a, 𝕵 s)  → (a, toNullable s)
 
 {- | decompose a `SeqNE` rightwards -}
 unsnoc ∷ SeqNE α → (Seq α, α)
@@ -547,7 +524,7 @@ pattern xs :⫸ x <- (unsnoc -> (xs,x))
 
 compositionTests ∷ TestTree
 compositionTests =
-  let Just seq0 = fromList [2∷ℕ,4,6,8]
+  let 𝕵 seq0 = fromList [2∷ℕ,4,6,8]
       (xs,x) = case seq0 of
                  ys :⫸ y → (ys,y)
                  -- this line, when commented, will produce a 'Pattern match(es)
@@ -597,7 +574,7 @@ init = Data.NonNull.init ∘ unSeqNE
 last ∷ SeqNE α → α
 last = Data.NonNull.last ∘ unSeqNE
 
-fromList ∷ [α] → Maybe (SeqNE α)
+fromList ∷ [α] → 𝕄 (SeqNE α)
 fromList = (SeqNE ∘ Data.NonNull.fromNonEmpty) ⩺ NonEmpty.nonEmpty
 
 infixl 5 |>>
@@ -654,24 +631,24 @@ catenationTests =
 
 ----------------------------------------
 
-stripProperPrefix ∷ (ToSeq κ, Eq α) ⇒ κ α → SeqNE α  → Maybe (SeqNE α)
+stripProperPrefix ∷ (ToSeq κ, Eq α) ⇒ κ α → SeqNE α  → 𝕄 (SeqNE α)
 stripProperPrefix (toSeq → x :⪬ xs) (y :⪬ ys) | x ≡ y =
   case fromSeq ys of
-    Nothing  → Nothing
-    Just ys' → stripProperPrefix xs ys'
-stripProperPrefix (toSeq → Seq.Empty) s = Just s
-stripProperPrefix _ _ = Nothing
+    𝕹  → 𝕹
+    𝕵 ys' → stripProperPrefix xs ys'
+stripProperPrefix (toSeq → Seq.Empty) s = 𝕵 s
+stripProperPrefix _ _ = 𝕹
 
 --------------------
 
 stripProperPrefixTests ∷ TestTree
 stripProperPrefixTests =
   testGroup "stripProperPrefix"
-   [ testCase "null"   $ Just (1 ⋖ []) @=? stripProperPrefix []    ((1 ∷ ℕ) ⋖ [])
-   , testCase "pfx"    $ Just (2 ⋖ []) @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [2])
-   , testCase "no pfx" $ Nothing       @=? stripProperPrefix [2]   ((1 ∷ ℕ) ⋖ [])
-   , testCase "equal"  $ Nothing       @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [])
-   , testCase "longer" $ Nothing       @=? stripProperPrefix [1,2] ((1 ∷ ℕ) ⋖ [])
+   [ testCase "null"   $ 𝕵 (1 ⋖ []) @=? stripProperPrefix []    ((1 ∷ ℕ) ⋖ [])
+   , testCase "pfx"    $ 𝕵 (2 ⋖ []) @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [2])
+   , testCase "no pfx" $ 𝕹       @=? stripProperPrefix [2]   ((1 ∷ ℕ) ⋖ [])
+   , testCase "equal"  $ 𝕹       @=? stripProperPrefix [1]   ((1 ∷ ℕ) ⋖ [])
+   , testCase "longer" $ 𝕹       @=? stripProperPrefix [1,2] ((1 ∷ ℕ) ⋖ [])
    ]
 
 --------------------------------------------------------------------------------

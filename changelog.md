@@ -1,3 +1,7 @@
+1.4.3.0 2022-01-05
+==================
+- export toList from NonEmptyHashSet
+
 1.4.2.0 2021-07-12
 ==================
 - add NFData instance of SeqNE

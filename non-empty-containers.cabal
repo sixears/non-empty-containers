@@ -7,7 +7,7 @@ name:                non-empty-containers
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.4.2.0
+version:             1.4.3.0
 
 -- A short (one-line) description of the package.
 synopsis:            Containers that may not be empty, by construction
@@ -73,13 +73,14 @@ library
   other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base, base-unicode-symbols, containers, data-textual
-                     , deepseq, hashable, lens , mono-traversable, QuickCheck
-                     , tasty, tasty-hunit, tasty-quickcheck, template-haskell
-                     , text, text-printer, unordered-containers
+  build-depends:       base, base-unicode-symbols, containers, deepseq, lens
+                     , mono-traversable, QuickCheck, tasty, tasty-hunit
+                     , tasty-quickcheck, template-haskell, text, text-printer
+                     , unordered-containers
 
-                     , more-unicode >= 0.0.15.0
-                     , tasty-plus >= 1.5.0.2
+                     , base1        >= 0.0.4.0
+                     , more-unicode >= 0.0.16.0
+                     , tasty-plus   >= 1.5.1.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
