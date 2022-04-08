@@ -1,3 +1,7 @@
+1.4.3.1 2022-04-06
+==================
+- upgrade base1 to 0.0.8.0
+
 1.4.3.0 2022-01-05
 ==================
 - export toList from NonEmptyHashSet
