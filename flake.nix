@@ -10,7 +10,7 @@
     tasty-plus.url    = "github:sixears/tasty-plus/r1.5.2.7";
   };
 
-  outputs = { self, nixpkgs, flake-utils, build-utils
+  outputs = { self, nixpkgs, build-utils
             , base1, more-unicode, tasty-plus }:
     build-utils.lib.hOutputs self nixpkgs "non-empty-containers" {
       deps = {
