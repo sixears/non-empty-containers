@@ -6,9 +6,9 @@
 #    build-utils.url   = github:sixears/flake-build-utils/r1.0.0.12;
     build-utils.url   = path:/home/martyn/src/flake-build-utils;
 
-    base1.url         = github:sixears/base1/r0.0.9.23;
+    base1.url         = github:sixears/base1/r0.0.9.24;
     more-unicode.url  = github:sixears/more-unicode/r0.0.17.9;
-    tasty-plus.url    = github:sixears/tasty-plus/r1.5.2.16;
+    tasty-plus.url    = github:sixears/tasty-plus/r1.5.2.17;
   };
 
   outputs = { self, nixpkgs, build-utils
