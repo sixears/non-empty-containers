@@ -26,11 +26,12 @@ import Prelude  ( (*), error )
 
 import qualified  Data.List.NonEmpty  as  NonEmpty
 
-import Data.Data            ( Data )
-import Data.Foldable        ( Foldable )
-import Data.Functor         ( Functor )
-import Data.List            ( filter )
-import Data.Ord             ( Ordering )
+import Data.Data      ( Data )
+import Data.Foldable  ( Foldable )
+import Data.Functor   ( Functor )
+import Data.List      ( filter )
+import Data.Maybe     ( fromJust )
+import Data.Ord       ( Ordering )
 
 -- containers --------------------------
 
@@ -75,7 +76,7 @@ import TastyPlus  ( runTestsP, runTestsReplay, runTestTree )
 -- template-haskell --------------------
 
 import Language.Haskell.TH.Syntax  ( Lift( lift, liftTyped )
-                                   , Exp( AppE, VarE ), TExp( TExp ) )
+                                   , Exp( AppE, VarE ), TExp( TExp ), liftCode )
 
 ------------------------------------------------------------
 --                     local imports                      --
@@ -190,7 +191,7 @@ instance (Data α,Typeable α,Lift α) ⇒ Lift (SeqNE α) where
   lift (SeqNE ss) = do
     xs ← lift ∘ toList $ toNullable ss
     return $ AppE (VarE '__SeqNE) (AppE (VarE 'Seq.fromList) xs)
-  liftTyped s = TExp ⊳ lift s
+  liftTyped s = liftCode $ TExp ⊳ lift s
 
 --------------------
 
@@ -524,7 +525,7 @@ pattern xs :⫸ x <- (unsnoc -> (xs,x))
 
 compositionTests ∷ TestTree
 compositionTests =
-  let 𝕵 seq0 = fromList [2∷ℕ,4,6,8]
+  let seq0 = fromJust $ fromList [2∷ℕ,4,6,8]
       (xs,x) = case seq0 of
                  ys :⫸ y → (ys,y)
                  -- this line, when commented, will produce a 'Pattern match(es)
